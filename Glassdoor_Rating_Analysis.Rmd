@@ -1,0 +1,80 @@
+---
+title: "Glassdoor Ratings Analysis"
+author: "Manisha Rana"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setoptions,echo=TRUE}
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+# Executive Summary
+### The aim of this project is to analyze Glassdoor Ratings of 100 companies across sectors like Internet & Web, Technology, Investment & Asset Management and Pharmaceuticals. We analyze the impact of Career,Compensation & Benefit, Culture, Senior Management, Work Life Balance and D&I on Employee Net Promoter Score. We measure Employee et Promoter Score to measure Employee Loyalty by Recommend to a Friend score which measures to what extent employees recommend their workplace to their friends. Recommend to a Friend is an indepedent variable and all the other variables are Dependent Variable. All the variables are measured on a scale of 1 to 5 with 1 being the lowest and 5 being the highest. We use Multiple Linear Regression model and we find that Culture and Senior Management variables are high multicollinear so they are removed from the model. After removing these variable when we use the Multiple Linear Regression model we find that Career, C&B, Work Life Balance and D&I have a significant impact on the Recommend to a Friend score.
+
+# Loading the libraries
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(caret)
+library(car)
+```
+
+### Reading the data from Excel File
+```{r}
+hrdata_gs<-read_excel("Glassdoor Ratings_Work.xlsx")
+```
+
+### Exploring the data
+```{r}
+str(hrdata_gs)
+```
+
+### Using Multiple Regression Model
+```{r}
+model1<-lm(formula=Recommendation~., data=hrdata_gs)
+```
+
+### Summarizing the model
+```{r}
+summary(model1)
+```
+
+### Checking assumptions - MLR
+### Assumption 1&2 Checking outliers and linearity by analysing graphical plots
+```{r}
+par(mfrow = c(2, 2))
+plot(model1)
+```
+
+### Assumption 3 - Checking for multicollinearity
+```{r}
+vif_values <- vif(model1)
+barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "steelblue")
+abline(v = 5, lwd = 3, lty = 2)
+```
+
+### Build a model excluding the Culture snd Senior Mgmt variable due to high multicollinearity
+```{r}
+model2 <- lm(Recommendation ~ Career_opportunities+CandB+ WLB+DandI , data = hrdata_gs)
+summary(model2)
+```
+### From the model summary we find that all the Dependant variables have a significant impact on Recommendation variable as the p-value is less than 0.05
+
+
+### Checking for Linearity, Normality and Outliers
+```{r}
+par(mfrow = c(2, 2))
+plot(model2)
+```
+
+### In the Residuals vs Leverage Plot observation #53 lies closest to the border of Cook’s distance, but it doesn’t fall outside of the dashed line. This means there are not any influential points in our regression model.
+
+### From the Residuals vs fitted Plot we see some heteroscedasticity so we use use Goldfeld Quandt test to check for heteroscedasticity
+```{r}
+library(lmtest)
+gqtest(model2, order.by = ~Career_opportunities+CandB+ WLB+DandI, data = hrdata_gs, fraction = 18)
+```
+
+### As the p-value is not less than 0.05 we fail to reject the null hypothesis that there is no heteroscedasticity in the data
